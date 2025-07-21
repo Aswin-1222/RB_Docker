@@ -17,6 +17,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image from subfolder
+      - name: Build Docker image locally
         run: |
-          docker build -t rb_app "rental data"
+          docker build -t rb_app .
