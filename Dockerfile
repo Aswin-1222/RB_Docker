@@ -1,16 +1,15 @@
-# Use an official Python runtime as the base image
-FROM node:18-slim
-WORKDIR /App
+# Use the official Azure Functions Node.js base image
+FROM mcr.microsoft.com/azure-functions/node:4-node18
 
-COPY package.json .
+# Set working directory
+WORKDIR /home/site/wwwroot
 
-RUN npm install
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install --production
 
-# Copy the rest of the application code into the container
+# Copy function app code
 COPY . .
 
-# Expose the port your Flask app runs on
-EXPOSE 3000
-
-# Command to run the application
-CMD ["npm", "start"]
+# No EXPOSE needed; Azure Functions runtime handles ports
+# Default CMD is already set by the base image
