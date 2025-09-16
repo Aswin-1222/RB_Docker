@@ -1,15 +1,17 @@
-name: Build and Push Docker Image to ACR
+name: Build & Push Docker Image + Upload Files to Blob
 
 on:
   push:
     branches:
       - feature/test
+      - main
   workflow_dispatch:
 
 jobs:
+  # --- Job 1: Build and Push Docker Image to ACR ---
   build-and-push:
     runs-on: ubuntu-latest
-
+    if: github.ref == 'refs/heads/feature/test'
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v3
@@ -25,3 +27,31 @@ jobs:
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/rb_app:latest .
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/rb_app:latest
+
+  # --- Job 2: Upload repo files to Azure Blob ---
+  upload-to-blob:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🔧 Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: 🪣 Ensure container exists
+        run: |
+          az storage container create \
+            --name mycontainer \
+            --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+            --public-access off
+
+      - name: ⬆️ Upload files to Azure Blob
+        run: |
+          az storage blob upload-batch \
+            --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+            --destination mycontainer \
+            --source . \
+            --pattern "*" \
+            --overwrite
