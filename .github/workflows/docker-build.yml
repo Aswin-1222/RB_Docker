@@ -1,4 +1,4 @@
-name: Build & Push Docker Image + Upload Files to Blob
+name: Build & Push Docker Image
 
 on:
   push:
@@ -8,45 +8,23 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted   # 👈 self-hosted runner
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Log in to ACR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/rb_app:latest .
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/rb_app:latest
-
-  upload-to-blob:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Install Azure CLI
         run: |
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
-      - name: Ensure container exists
-        run: |
-          az storage container create \
-            --name mycontainer \
-            --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
-            --public-access off
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Upload files to Azure Blob
+      - name: Build and Push Docker Image via ACR Task
         run: |
-          az storage blob upload-batch \
-            --connection-string "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
-            --destination mycontainer \
-            --source . \
-            --pattern "*" \
-            --overwrite
+          az acr build \
+            --registry ${{ secrets.ACR_NAME }} \
+            --image rb_app:latest \
+            .
