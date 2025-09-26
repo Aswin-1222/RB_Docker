@@ -8,21 +8,30 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: self-hosted   # 
+    runs-on: self-hosted   # use your self-hosted runner
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Install Azure CLI
+      - name: Install Azure CLI (Linux runner)
+        if: runner.os == 'Linux'
         run: |
           curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Install Azure CLI (Windows runner)
+        if: runner.os == 'Windows'
+        run: |
+          Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi
+          Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'
+          az --version
 
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Build and Push Docker Image via ACR Task
+      - name: Build and Push Docker Image with ACR
         run: |
           az acr build \
             --registry ${{ secrets.ACR_NAME }} \
